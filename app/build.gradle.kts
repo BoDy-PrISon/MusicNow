@@ -5,6 +5,15 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystorePropertiesFile = rootProject.file("local.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.example.musicnow"
     compileSdk = 35
@@ -19,13 +28,35 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                val keyStoreFile = keystoreProperties.getProperty("KEYSTORE_FILE")
+                val keyStorePassword = keystoreProperties.getProperty("KEYSTORE_PASSWORD")
+                val keyAlias = keystoreProperties.getProperty("KEY_ALIAS")
+                val keyPassword = keystoreProperties.getProperty("KEY_PASSWORD")
+
+                if (keyStoreFile != null && keyStorePassword != null && keyAlias != null && keyPassword != null) {
+                    storeFile = rootProject.file(keyStoreFile)
+                    storePassword = keyStorePassword
+                    this.keyAlias = keyAlias
+                    this.keyPassword = keyPassword
+                } else {
+                    println("Signing config for 'release' is incomplete in local.properties. Skipping.")
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
